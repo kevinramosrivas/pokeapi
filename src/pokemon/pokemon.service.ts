@@ -1,9 +1,10 @@
-import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { CreatePokemonDto } from './dto/create-pokemon.dto';
 import { UpdatePokemonDto } from './dto/update-pokemon.dto';
 import { Pokemon } from './entities/pokemon.entity';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
+import { isMongoId } from 'class-validator';
 
 @Injectable()
 export class PokemonService {
@@ -28,15 +29,46 @@ export class PokemonService {
     return `This action returns all pokemon`;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} pokemon`;
+  async findOne(term: string) {
+    let pokemon;
+    if(!isNaN(+term)){
+      pokemon = await this.pokemonModel.findOne({no: term});
+    }
+
+    if(!pokemon && isMongoId(term)){
+      pokemon = await this.pokemonModel.findById(term);
+    }
+
+    if(!pokemon){
+      pokemon = await this.pokemonModel.findOne({name: term});
+    }
+
+    if(!pokemon) throw new NotFoundException(`No se encontro el pokemon buscado por id, nombre o mongoid ${term}`)
+
+    return pokemon;
   }
 
-  update(id: number, updatePokemonDto: UpdatePokemonDto) {
-    return `This action updates a #${id} pokemon`;
+  async update(term: string, updatePokemonDto: UpdatePokemonDto) {
+    try{
+      const pokemon = await this.findOne(term);
+      await pokemon.updateOne(updatePokemonDto,{new:true});
+      return pokemon;
+    }
+    catch(e){
+      throw new BadRequestException(`No se pudo actualizar el pokemon, intentelo de nuevo por favor`);
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} pokemon`;
+  async remove(id: string) {
+    try{
+      const pokemon = await this.findOne(id);
+
+      await pokemon.deleteOne()
+
+      return pokemon;
+    }
+    catch(e){
+      throw new BadRequestException(`No se pudo eliminar el pokemon, intenlo de nuevo por favor`);
+    }
   }
 }
