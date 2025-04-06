@@ -22,6 +22,11 @@ $ npm i -g @nestjs/cli
 $ docker-compose up -d
 ```
 
+5.Crear base de datos de prueba accediendo a este endpoint
+```bash
+GET : http://localhost:3000/seed
+```
+
 ## Stack usado
 * MongoDB
 * NestJS
